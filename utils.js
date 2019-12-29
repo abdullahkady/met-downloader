@@ -31,8 +31,10 @@ module.exports.isDoneDownloading = (filePath, timeout) =>
     });
   });
 
-module.exports.isValidEmail = string => {
-  return validator.isEmail(string);
+module.exports.isValidGucEmail = string => {
+  return new RegExp(
+    /^[a-zA-Z0-9_\-\.]+@student\.guc\.edu\.eg$/,
+  ).test(string);
 };
 
 module.exports.isValidMetCourseUrl = string => {

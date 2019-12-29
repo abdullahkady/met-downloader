@@ -4,7 +4,7 @@ const inquirer = require('inquirer');
 const { mkdirSync } = require('fs');
 const {
   isDoneDownloading,
-  isValidEmail,
+  isValidGucEmail,
   isValidMetCourseUrl
 } = require('./utils');
 
@@ -75,7 +75,7 @@ const main = async () => {
       type: 'input',
       name: 'email',
       message: 'Enter email:',
-      validate: isValidEmail
+      validate: isValidGucEmail
     },
     {
       type: 'password',
