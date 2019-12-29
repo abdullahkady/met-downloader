@@ -1,34 +1,45 @@
 /** @typedef {import('puppeteer').Page} Page */
 const puppeteer = require('puppeteer');
 const { mkdirSync } = require('fs');
+const { isDoneDownloading } = require('./utils');
 
 /**
  * @param {puppeteer.Page} page
  * */
 const downloadMaterial = async page => {
-  const sections = await page.$$eval('.badgeContainer', containers =>
+  const materialsSections = await page.$$eval('.badgeContainer', containers =>
     containers
       .map(container => {
         const directory = container
           .querySelector('.badgeDetails > h3')
           .innerText.replace(' ', '_');
-        const ids = Array.from(container.querySelectorAll('a')).map(n => n.id);
+        const files = Array.from(container.querySelectorAll('a')).map(node => ({
+          fileName: node
+            .getAttribute('href')
+            .split('file=')
+            .pop(),
+          id: node.id
+        }));
+
         return {
           directory,
-          ids
+          files
         };
       })
-      .filter(({ ids }) => ids.length > 0)
+      .filter(({ files }) => files.length > 0)
   );
-  for (const [i, { directory, ids }] of sections.entries()) {
+
+  for (const [i, { directory, files }] of materialsSections.entries()) {
     const path = `${__dirname}/downloads/${i + 1}-${directory}`;
     await mkdirSync(path);
     await page._client.send('Page.setDownloadBehavior', {
       behavior: 'allow',
       downloadPath: path
     });
-    for (const id of ids) {
+
+    for (const { id, fileName } of files) {
       await page.click(`#${id}`);
+      await isDoneDownloading(`${path}/${fileName}`, 60000);
     }
   }
 };
