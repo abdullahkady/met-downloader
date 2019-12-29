@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const validator = require('validator');
 
 // Credits: https://stackoverflow.com/a/56951024/7502260
 module.exports.isDoneDownloading = (filePath, timeout) =>
@@ -29,3 +30,7 @@ module.exports.isDoneDownloading = (filePath, timeout) =>
       }
     });
   });
+
+module.exports.isValidEmail = string => {
+  return validator.isEmail(string);
+};
