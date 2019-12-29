@@ -12,7 +12,7 @@ const downloadMaterial = async page => {
       .map(container => {
         const directory = container
           .querySelector('.badgeDetails > h3')
-          .innerText.replace(' ', '_');
+          .innerText.replace(/\s/g, '_');
         const files = Array.from(container.querySelectorAll('a')).map(node => ({
           fileName: node
             .getAttribute('href')
