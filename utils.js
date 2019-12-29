@@ -34,3 +34,9 @@ module.exports.isDoneDownloading = (filePath, timeout) =>
 module.exports.isValidEmail = string => {
   return validator.isEmail(string);
 };
+
+module.exports.isValidMetCourseUrl = string => {
+  return new RegExp(
+    /^http:\/\/met\.guc\.edu\.eg\/Courses\/Material\.aspx\?crsEdId=[1-9]*$/,
+  ).test(string);
+};
