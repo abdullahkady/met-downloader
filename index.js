@@ -5,7 +5,7 @@ const { mkdirSync } = require('fs');
 const {
   isDoneDownloading,
   isValidEmail,
-  isValidMetCourseUrl,
+  isValidMetCourseUrl
 } = require('./utils');
 
 /**
@@ -87,7 +87,7 @@ const main = async () => {
       name: 'courseURL',
       message: 'Enter course URL:',
       validate: isValidMetCourseUrl,
-    },
+    }
   ]);
 
   const browser = await puppeteer.launch({ headless: false, devtools: true });
