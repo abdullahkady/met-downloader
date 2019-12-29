@@ -1,7 +1,12 @@
 /** @typedef {import('puppeteer').Page} Page */
 const puppeteer = require('puppeteer');
+const inquirer = require('inquirer');
 const { mkdirSync } = require('fs');
-const { isDoneDownloading } = require('./utils');
+const {
+  isDoneDownloading,
+  isValidEmail,
+  isValidMetCourseUrl,
+} = require('./utils');
 
 /**
  * @param {puppeteer.Page} page
@@ -65,16 +70,25 @@ const login = async (page, email, password) => {
 };
 
 const main = async () => {
-  // TODO: Ask for input nicely :')
-
-  let email, password, courseURL;
-  try {
-    [email, password] = process.argv[2].split(':'); // email:password
-    courseURL = process.argv[3];
-  } catch (error) {
-    console.warn(error);
-    return;
-  }
+  const { email, password, courseURL } = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'email',
+      message: 'Enter email:',
+      validate: isValidEmail,
+    },
+    {
+      type: 'password',
+      name: 'password',
+      message: 'Enter password:',
+    },
+    {
+      type: 'input',
+      name: 'courseURL',
+      message: 'Enter course URL:',
+      validate: isValidMetCourseUrl,
+    },
+  ]);
 
   const browser = await puppeteer.launch({ headless: false, devtools: true });
   const page = await browser.newPage();
