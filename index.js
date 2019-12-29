@@ -75,18 +75,18 @@ const main = async () => {
       type: 'input',
       name: 'email',
       message: 'Enter email:',
-      validate: isValidEmail,
+      validate: isValidEmail
     },
     {
       type: 'password',
       name: 'password',
-      message: 'Enter password:',
+      message: 'Enter password:'
     },
     {
       type: 'input',
       name: 'courseURL',
       message: 'Enter course URL:',
-      validate: isValidMetCourseUrl,
+      validate: isValidMetCourseUrl
     }
   ]);
 
