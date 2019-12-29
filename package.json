@@ -11,7 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "inquirer": "^7.0.1",
-    "puppeteer": "^2.0.0"
+    "puppeteer": "^2.0.0",
+    "validator": "^12.1.0"
   },
   "devDependencies": {
     "eslint": "^6.8.0",
