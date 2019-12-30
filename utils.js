@@ -29,3 +29,15 @@ module.exports.isDoneDownloading = (filePath, timeout) =>
       }
     });
   });
+
+module.exports.isValidGucEmail = string => {
+  return new RegExp(
+    /^[a-zA-Z0-9_\-\.]+@student\.guc\.edu\.eg$/,
+  ).test(string);
+};
+
+module.exports.isValidMetCourseUrl = string => {
+  return new RegExp(
+    /^http:\/\/met\.guc\.edu\.eg\/Courses\/Material\.aspx\?crsEdId=[1-9]+$/,
+  ).test(string);
+};

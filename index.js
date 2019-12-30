@@ -1,7 +1,12 @@
 /** @typedef {import('puppeteer').Page} Page */
 const puppeteer = require('puppeteer');
+const inquirer = require('inquirer');
 const { mkdirSync } = require('fs');
-const { isDoneDownloading } = require('./utils');
+const {
+  isDoneDownloading,
+  isValidGucEmail,
+  isValidMetCourseUrl
+} = require('./utils');
 
 /**
  * @param {puppeteer.Page} page
@@ -65,16 +70,43 @@ const login = async (page, email, password) => {
 };
 
 const main = async () => {
-  // TODO: Ask for input nicely :')
+  const { email, password, courseURL } = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'email',
+      message: 'Enter email:',
+      validate: email => {
+        if (isValidGucEmail(email)) {
+          return true;
+        }
 
-  let email, password, courseURL;
-  try {
-    [email, password] = process.argv[2].split(':'); // email:password
-    courseURL = process.argv[3];
-  } catch (error) {
-    console.warn(error);
-    return;
-  }
+        return (
+          'Please use your GUC email that is registered on' +
+          ' the MET website (eg. your.name@student.guc.edu.eg)'
+        );
+      }
+    },
+    {
+      type: 'password',
+      name: 'password',
+      message: 'Enter password:'
+    },
+    {
+      type: 'input',
+      name: 'courseURL',
+      message: 'Enter course URL:',
+      validate: courseURL => {
+        if (isValidMetCourseUrl(courseURL)) {
+          return true;
+        }
+
+        return (
+          'Please enter a valid course material URL' +
+          ' (eg. http://met.guc.edu.eg/Courses/Material.aspx?crsEdId=954)'
+        );
+      }
+    }
+  ]);
 
   const browser = await puppeteer.launch({ headless: false, devtools: true });
   const page = await browser.newPage();
