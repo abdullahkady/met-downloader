@@ -38,6 +38,6 @@ module.exports.isValidGucEmail = string => {
 
 module.exports.isValidMetCourseUrl = string => {
   return new RegExp(
-    /^http:\/\/met\.guc\.edu\.eg\/Courses\/Material\.aspx\?crsEdId=[1-9]+$/,
+    /^http:\/\/met\.guc\.edu\.eg\/Courses\/Material\.aspx\?crsEdId=[0-9]+$/,
   ).test(string);
 };
