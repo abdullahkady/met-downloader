@@ -8,10 +8,8 @@ After cloning, install the dependencies by running
 npm install
 ```
 
-For now, you can use the following example (this definitely needs improvements of input capturing):
+Finally run the application normally, and follow the interactive input
 
 ```bash
-npm start YOUR_GUC_EMAIL:YOUR_MET_PASSWORD COURSE_MATERIAL_URL
+npm start
 ```
-
-Where COURSE_MATERIAL_URL points the to the URL of the materials page (eg. http://met.guc.edu.eg/Courses/Material.aspx?crsEdId=954)
