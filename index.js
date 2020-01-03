@@ -5,7 +5,8 @@ const { mkdirSync } = require('fs');
 const {
   isDoneDownloading,
   isValidGucEmail,
-  isValidMetCourseUrl
+  isValidMetCourseUrl,
+  constructMaterialLink
 } = require('./utils');
 
 /**
@@ -66,11 +67,14 @@ const login = async (page, email, password) => {
     page.click('.loginBtn'),
     page.waitForNavigation({ waitUntil: 'load' })
   ]);
-  // TODO: Handle invalid credentials
+
+  // Easiest way to check for non-logged in is to search for a div with id=logged
+  // which is only available after the user is successfully logged in.
+  return (await page.$('#logged')) !== null;
 };
 
-const main = async () => {
-  const { email, password, courseURL } = await inquirer.prompt([
+const captureInput = () => {
+  return inquirer.prompt([
     {
       type: 'input',
       name: 'email',
@@ -101,20 +105,38 @@ const main = async () => {
         }
 
         return (
-          'Please enter a valid course material URL' +
+          'Please enter a valid course URL' +
           ' (eg. http://met.guc.edu.eg/Courses/Material.aspx?crsEdId=954)'
         );
       }
     }
   ]);
+};
 
+const main = async () => {
+  const { email, password, courseURL } = await captureInput();
   const browser = await puppeteer.launch({ headless: false, devtools: true });
   const page = await browser.newPage();
-  await login(page, email, password);
-  await page.goto(courseURL);
+
+  if (!(await login(page, email, password))) {
+    console.log('You have entered invalid credentials, please try again.');
+    await browser.close();
+    return;
+  }
+
+  const response = await page.goto(constructMaterialLink(courseURL));
+  if (response.request().redirectChain().length !== 0) {
+    // If the request got redirected, then the course ID was invalid, and the
+    // request was thus redirected back to the main page.
+    console.log(
+      'You have entered an invalid course. Please make sure the course exists.'
+    );
+    await browser.close();
+    return;
+  }
 
   await downloadMaterial(page);
-  setTimeout(() => browser.close(), 1000);
+  await browser.close();
 };
 
 main();

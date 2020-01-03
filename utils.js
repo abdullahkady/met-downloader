@@ -31,13 +31,20 @@ module.exports.isDoneDownloading = (filePath, timeout) =>
   });
 
 module.exports.isValidGucEmail = string => {
-  return new RegExp(
-    /^[a-zA-Z0-9_\-\.]+@student\.guc\.edu\.eg$/,
-  ).test(string);
+  return /^[a-zA-Z0-9_\-\.]+@student\.guc\.edu\.eg$/.test(string);
 };
 
 module.exports.isValidMetCourseUrl = string => {
-  return new RegExp(
-    /^http:\/\/met\.guc\.edu\.eg\/Courses\/Material\.aspx\?crsEdId=[1-9]+$/,
-  ).test(string);
+  const matchingQueryParam = string.match(/crsEdId=\d+/);
+  return (
+    /^http:\/\/met\.guc\.edu\.eg\/Courses/.test(string) &&
+    matchingQueryParam &&
+    matchingQueryParam.length === 1
+  );
+};
+
+module.exports.constructMaterialLink = inputURL => {
+  // Note that the input URL can be any valid course URL (not necessarily the materials tab).
+  const courseIDQueryParam = inputURL.match(/crsEdId=\d+/).pop(); // crsEdId=912
+  return `http://met.guc.edu.eg/Courses/Material.aspx?${courseIDQueryParam}`;
 };
