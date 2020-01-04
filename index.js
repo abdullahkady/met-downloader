@@ -12,7 +12,7 @@ const {
 /**
  * @param {puppeteer.Page} page
  * */
-const downloadMaterial = async page => {
+const downloadMaterial = async (page, downloadDirectoryPath) => {
   const materialsSections = await page.$$eval('.badgeContainer', containers =>
     containers
       .map(container => {
@@ -36,8 +36,8 @@ const downloadMaterial = async page => {
   );
 
   for (const [i, { directory, files }] of materialsSections.entries()) {
-    const path = `${__dirname}/downloads/${i + 1}-${directory}`;
-    await mkdirSync(path);
+    const path = `${downloadDirectoryPath}/${i + 1}-${directory}`;
+    mkdirSync(path);
     await page._client.send('Page.setDownloadBehavior', {
       behavior: 'allow',
       downloadPath: path
@@ -45,7 +45,7 @@ const downloadMaterial = async page => {
 
     for (const { id, fileName } of files) {
       await page.click(`#${id}`);
-      await isDoneDownloading(`${path}/${fileName}`, 60000);
+      await isDoneDownloading(`${path}/${fileName}`, 100000);
     }
   }
 };
@@ -135,7 +135,22 @@ const main = async () => {
     return;
   }
 
-  await downloadMaterial(page);
+  const { downloadDirectoryName } = await inquirer.prompt([
+    {
+      name: 'downloadDirectoryName',
+      message: `Enter a directory name to be created for the course's material:`,
+      default: await page.$$eval('.coursesPageTitle', elements =>
+        elements
+          .map(e => e.innerText)
+          .join('::')
+          .replace(/\s/g, '_')
+      )
+    }
+  ]);
+  const downloadRootPath = `${__dirname}/downloads/${downloadDirectoryName}`;
+  mkdirSync(downloadRootPath);
+
+  await downloadMaterial(page, downloadRootPath);
   await browser.close();
 };
 
