@@ -6,9 +6,7 @@ module.exports.isDoneDownloading = (filePath, timeout) =>
   new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       watcher.close();
-      reject(
-        new Error('File did not exists and was not created during the timeout.')
-      );
+      reject(new Error('File did not exists and was not created during the timeout.'));
     }, timeout);
 
     fs.access(filePath, fs.constants.R_OK, err => {

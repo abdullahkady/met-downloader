@@ -11,12 +11,14 @@
   "license": "MIT",
   "dependencies": {
     "inquirer": "^7.0.1",
+    "ora": "^4.0.3",
     "puppeteer": "^2.0.0"
   },
   "devDependencies": {
     "eslint": "^6.8.0",
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-config-prettier": "^6.9.0",
-    "eslint-plugin-import": "^2.19.1"
+    "eslint-plugin-import": "^2.19.1",
+    "prettier": "^1.19.1"
   }
 }
