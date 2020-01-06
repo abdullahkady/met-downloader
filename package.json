@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Downloads the material of a course hosted on the MET (GUC) website, and organizes the materials into their respective folders accordingly",
   "main": "index.js",
+  "homepage": "https://github.com/AbdullahKady/met-material-downloader",
   "scripts": {
     "start": "node index.js"
   },
@@ -16,9 +17,6 @@
   },
   "devDependencies": {
     "eslint": "^6.8.0",
-    "eslint-config-airbnb-base": "^14.0.0",
-    "eslint-config-prettier": "^6.9.0",
-    "eslint-plugin-import": "^2.19.1",
     "prettier": "^1.19.1"
   }
 }
