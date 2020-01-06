@@ -8,11 +8,12 @@ const {
   isValidMetCourseUrl,
   constructMaterialLink
 } = require('./utils');
+const ora = require('ora');
 
 /**
  * @param {puppeteer.Page} page
  * */
-const downloadMaterial = async (page, downloadDirectoryPath) => {
+const downloadMaterial = async (page, downloadDirectoryPath, spinner) => {
   const materialsSections = await page.$$eval('.badgeContainer', containers =>
     containers
       .map(container => {
@@ -43,7 +44,8 @@ const downloadMaterial = async (page, downloadDirectoryPath) => {
       downloadPath: path
     });
 
-    for (const { id, fileName } of files) {
+    for (const [j, { id, fileName }] of files.entries()) {
+      spinner.text = `downloading ${i + 1}/${materialsSections.length} (${j + 1}/${files.length})`;
       await page.click(`#${id}`);
       await isDoneDownloading(`${path}/${fileName}`, 100000);
     }
@@ -63,10 +65,7 @@ const login = async (page, email, password) => {
   await page.focus('.passwordTBox');
   await page.keyboard.type(password);
 
-  await Promise.all([
-    page.click('.loginBtn'),
-    page.waitForNavigation({ waitUntil: 'load' })
-  ]);
+  await Promise.all([page.click('.loginBtn'), page.waitForNavigation({ waitUntil: 'load' })]);
 
   // Easiest way to check for non-logged in is to search for a div with id=logged
   // which is only available after the user is successfully logged in.
@@ -92,6 +91,7 @@ const captureInput = () => {
     },
     {
       type: 'password',
+      mask: '*',
       name: 'password',
       message: 'Enter password:'
     },
@@ -115,9 +115,19 @@ const captureInput = () => {
 
 const main = async () => {
   const { email, password, courseURL } = await captureInput();
-  const browser = await puppeteer.launch({ headless: false, devtools: true });
+  const { isHeadless } = await inquirer.prompt([
+    {
+      name: 'isHeadless',
+      type: 'confirm',
+      message: `Launch a headless browser (type 'n' if you want to see the browser automation in action).`,
+      default: true
+    }
+  ]);
+
+  const browser = await puppeteer.launch({ headless: isHeadless });
   const page = await browser.newPage();
 
+  const spinner = ora('Verifying credentials').start();
   if (!(await login(page, email, password))) {
     console.log('You have entered invalid credentials, please try again.');
     await browser.close();
@@ -125,16 +135,17 @@ const main = async () => {
   }
 
   const response = await page.goto(constructMaterialLink(courseURL));
+  spinner.text = 'Opening course link';
+
   if (response.request().redirectChain().length !== 0) {
     // If the request got redirected, then the course ID was invalid, and the
     // request was thus redirected back to the main page.
-    console.log(
-      'You have entered an invalid course. Please make sure the course exists.'
-    );
+    console.log('You have entered an invalid course. Please make sure the course exists.');
     await browser.close();
     return;
   }
 
+  spinner.stop();
   const { downloadDirectoryName } = await inquirer.prompt([
     {
       name: 'downloadDirectoryName',
@@ -149,8 +160,10 @@ const main = async () => {
   ]);
   const downloadRootPath = `${__dirname}/downloads/${downloadDirectoryName}`;
   mkdirSync(downloadRootPath);
+  spinner.start();
+  await downloadMaterial(page, downloadRootPath, spinner);
 
-  await downloadMaterial(page, downloadRootPath);
+  spinner.stop();
   await browser.close();
 };
 
