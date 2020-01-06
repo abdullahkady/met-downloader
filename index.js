@@ -1,14 +1,11 @@
 /** @typedef {import('puppeteer').Page} Page */
 const puppeteer = require('puppeteer');
-const inquirer = require('inquirer');
-const { mkdirSync } = require('fs');
-const {
-  isDoneDownloading,
-  isValidGucEmail,
-  isValidMetCourseUrl,
-  constructMaterialLink
-} = require('./utils');
+const fs = require('fs');
+const path = require('path');
 const ora = require('ora');
+
+const input = require('./input');
+const { isDoneDownloading, constructMaterialLink } = require('./utils');
 
 /**
  * @param {puppeteer.Page} page
@@ -37,17 +34,17 @@ const downloadMaterial = async (page, downloadDirectoryPath, spinner) => {
   );
 
   for (const [i, { directory, files }] of materialsSections.entries()) {
-    const path = `${downloadDirectoryPath}/${i + 1}-${directory}`;
-    mkdirSync(path);
+    const sectionDirectory = path.resolve(downloadDirectoryPath, `${i + 1}-${directory}`);
+    fs.mkdirSync(sectionDirectory);
     await page._client.send('Page.setDownloadBehavior', {
       behavior: 'allow',
-      downloadPath: path
+      downloadPath: sectionDirectory
     });
 
     for (const [j, { id, fileName }] of files.entries()) {
       spinner.text = `downloading ${i + 1}/${materialsSections.length} (${j + 1}/${files.length})`;
       await page.click(`#${id}`);
-      await isDoneDownloading(`${path}/${fileName}`, 100000);
+      await isDoneDownloading(path.resolve(sectionDirectory, fileName), 100000);
     }
   }
 };
@@ -72,99 +69,54 @@ const login = async (page, email, password) => {
   return (await page.$('#logged')) !== null;
 };
 
-const captureInput = () => {
-  return inquirer.prompt([
-    {
-      type: 'input',
-      name: 'email',
-      message: 'Enter email:',
-      validate: email => {
-        if (isValidGucEmail(email)) {
-          return true;
-        }
-
-        return (
-          'Please use your GUC email that is registered on' +
-          ' the MET website (eg. your.name@student.guc.edu.eg)'
-        );
-      }
-    },
-    {
-      type: 'password',
-      mask: '*',
-      name: 'password',
-      message: 'Enter password:'
-    },
-    {
-      type: 'input',
-      name: 'courseURL',
-      message: 'Enter course URL:',
-      validate: courseURL => {
-        if (isValidMetCourseUrl(courseURL)) {
-          return true;
-        }
-
-        return (
-          'Please enter a valid course URL' +
-          ' (eg. http://met.guc.edu.eg/Courses/Material.aspx?crsEdId=954)'
-        );
-      }
-    }
-  ]);
-};
-
-const main = async () => {
-  const { email, password, courseURL } = await captureInput();
-  const { isHeadless } = await inquirer.prompt([
-    {
-      name: 'isHeadless',
-      type: 'confirm',
-      message: `Launch a headless browser (type 'n' if you want to see the browser automation in action).`,
-      default: true
-    }
-  ]);
+const runApplication = async () => {
+  const { email, password } = await input.getCredentials();
+  const { isHeadless } = await input.getBrowserOptions();
 
   const browser = await puppeteer.launch({ headless: isHeadless });
   const page = await browser.newPage();
 
   const spinner = ora('Verifying credentials').start();
   if (!(await login(page, email, password))) {
+    spinner.stop();
     console.log('You have entered invalid credentials, please try again.');
     await browser.close();
     return;
   }
 
+  spinner.stop();
+  const { courseURL } = await input.getCourseURL();
   const response = await page.goto(constructMaterialLink(courseURL));
-  spinner.text = 'Opening course link';
 
   if (response.request().redirectChain().length !== 0) {
     // If the request got redirected, then the course ID was invalid, and the
     // request was thus redirected back to the main page.
+    spinner.stop();
     console.log('You have entered an invalid course. Please make sure the course exists.');
     await browser.close();
     return;
   }
 
-  spinner.stop();
-  const { downloadDirectoryName } = await inquirer.prompt([
-    {
-      name: 'downloadDirectoryName',
-      message: `Enter a directory name to be created for the course's material:`,
-      default: await page.$$eval('.coursesPageTitle', elements =>
-        elements
-          .map(e => e.innerText)
-          .join('::')
-          .replace(/\s/g, '_')
-      )
-    }
-  ]);
-  const downloadRootPath = `${__dirname}/downloads/${downloadDirectoryName}`;
-  mkdirSync(downloadRootPath);
+  const defaultDirectory = await page.$$eval('.coursesPageTitle', elements =>
+    elements
+      .map(e => e.innerText)
+      .join('::')
+      .replace(/\s/g, '_')
+  );
+  const downloadRootPath = await input.getDownloadDirectory(defaultDirectory);
+  fs.mkdirSync(downloadRootPath);
+
   spinner.start();
   await downloadMaterial(page, downloadRootPath, spinner);
-
   spinner.stop();
+  console.log('Download finished successfully!');
   await browser.close();
+};
+
+const main = async () => {
+  await runApplication();
+  console.log('\nThank you for using met-material-downloader. For feedback please head to: ');
+  console.log('https://github.com/AbdullahKady/met-material-downloader');
 };
 
 main();
