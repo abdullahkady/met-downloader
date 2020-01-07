@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const fuzzy = require('fuzzy');
+const chalk = require('chalk');
 const inquirer = require('inquirer');
 inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
 
@@ -39,12 +40,14 @@ module.exports.getDownloadRootPath = async () => {
   const { downloadRootPath } = await inquirer.prompt([
     {
       name: 'downloadRootPath',
-      message:
-        'Enter a path to the root directory for your downloads (note, this is not ' +
-        'the final directory, the program will create a sub-directory for the course):',
+      message: `Enter a path to the ${chalk.bold(
+        'parent'
+      )} directory (this is not the final directory, a ${chalk.bold(
+        'sub-directory'
+      )} will be created for each course):`,
       validate: path => {
         const isValid = fs.existsSync(path) && fs.lstatSync(path).isDirectory();
-        return isValid || `Directory invalid, please try again.`;
+        return isValid || `Directory doesn't exist, please try again.`;
       },
       default: systemDownloadDirectory
     }
@@ -70,7 +73,7 @@ module.exports.getCourseDirectory = async (defaultDirectory, rootPath) => {
     ({ courseDirectory } = await inquirer.prompt([
       {
         name: 'courseDirectory',
-        message: `"${courseDirectory}" already exists. Provide another name please`,
+        message: `"${chalk.italic(courseDirectory)}" already exists. Provide another name please`,
         validate: validateDirectory
       }
     ])); // Since re-assigning with destructuring, it has to be wrapped in parens.
@@ -95,7 +98,9 @@ module.exports.getCourse = coursesList =>
         type: 'autocomplete',
         pageSize: 5,
         name: 'course',
-        message: 'Select the course to be downloaded. Start typing to search: ',
+        message: `Select the course to be downloaded. Start typing to search (hit ${chalk.bold.red(
+          'CTRL + C'
+        )} to exit the program)`,
         source: coursesFuzzySearch(coursesList.map(c => c.name))
       }
     ])
