@@ -1,174 +1,27 @@
 #!/usr/bin/env node
-
-/** @typedef {import('puppeteer').Page} Page */
-const puppeteer = require('puppeteer');
-const fs = require('fs');
-const path = require('path');
-const ora = require('ora');
 const boxen = require('boxen');
 const chalk = require('chalk');
 
-const { URLS } = require('./constants');
-const input = require('./input');
-const { isHeadless } = require('./config');
-const { isDoneDownloading, constructMaterialLink, uniqueBy } = require('./utils');
+const { runApplication } = require('./app');
 
-/**
- * @param {puppeteer.Page} page
- * Expects that the page paramter is already navigated to the right
- * URL (course materials page)
- * */
-const downloadMaterial = async (page, downloadDirectoryPath, spinner, orderByFileType) => {
-  if (orderByFileType) {
-    await Promise.all([
-      page.click('#ctl00_AcademicsMasterContent_fileTypeLinkBtn'),
-      page.waitForNavigation({ waitUntil: 'load' })
-    ]);
+class SignalRef {
+  // This is a bug with inquirer, refer to:
+  // https://github.com/SBoudrias/Inquirer.js/issues/293#issuecomment-422890996
+  constructor(signal, handler) {
+    this.signal = signal;
+    this.handler = handler;
+
+    process.on(this.signal, this.handler);
+    this.interval = setInterval(() => {}, 10000);
   }
 
-  const materialsSections = await page.$$eval(
-    '.badgeContainer',
-    containers =>
-      containers
-        .map(container => {
-          // The element containing the course name differs based on the view (by type vs by week)
-          // and since the boolean "orderByFileType" won't be available in the page context, this
-          // hack is the easiest way to get a compatible solution for both cases.
-          let directory = container.querySelector('.badgeDetails > h3');
-          if (directory) {
-            directory = directory.innerText;
-          } else {
-            directory = container.querySelector('.badgeHeader h3').innerText;
-          }
-
-          const files = [...container.querySelectorAll('a')]
-            .filter(a => a.href && a.innerText) // They contain extra empty anchor tags \_0_/
-            .map(node => ({
-              fileName: node
-                .getAttribute('href')
-                .split('file=')
-                .pop(),
-              id: node.id
-            }));
-
-          return {
-            directory,
-            files
-          };
-        })
-        .filter(({ files }) => files.length > 0) // Ignore empty weeks (exams week for instance)
-  );
-
-  for (const [i, { directory, files }] of materialsSections.entries()) {
-    const sectionDirectory = path.resolve(downloadDirectoryPath, `${i + 1}-${directory}`);
-    fs.mkdirSync(sectionDirectory);
-    await page._client.send('Page.setDownloadBehavior', {
-      behavior: 'allow',
-      downloadPath: sectionDirectory
-    });
-
-    for (const [j, { id, fileName }] of files.entries()) {
-      spinner.text = `downloading ${i + 1}/${materialsSections.length} (${j + 1}/${files.length})`;
-      await page.click(`#${id}`);
-      await isDoneDownloading(path.resolve(sectionDirectory, fileName), 100000);
-    }
+  unref() {
+    clearInterval(this.interval);
+    process.removeListener(this.signal, this.handler);
   }
-};
+}
 
-/**
- * @param {puppeteer.Page} page
- * @param {string} email
- * @param {string} password
- * */
-const login = async (page, email, password) => {
-  await page.goto(URLS.HOMEPAGE);
-  await page.focus('.userNameTBox');
-  await page.keyboard.type(email);
-  await page.focus('.passwordTBox');
-  await page.keyboard.type(password);
-
-  await Promise.all([page.click('.loginBtn'), page.waitForNavigation({ waitUntil: 'load' })]);
-
-  // Easiest way to check for non-logged in is to search for a div with id=logged
-  // which is only available after the user is successfully logged in.
-  return (await page.$('#logged')) !== null;
-};
-
-/**
- * @param {puppeteer.Page} page
- * Fetches all courses available on the website (post&under graduate), and sorts
- * them so that if the user has 'my courses' populated, they would be shown first.
- * */
-const fetchAllCourses = async page => {
-  await page.goto(URLS.UNDERGRADUATE_COURSES);
-  const undergraduateCourses = await page.$$eval('.coursesLst', elements =>
-    elements.map(e => ({ name: e.innerText, url: e.href }))
-  );
-
-  await page.goto(URLS.POSTGRADUATE_COURSES);
-  const postgraduateCourses = await page.$$eval('#list a', elements =>
-    elements.map(e => ({ name: e.innerText, url: e.href }))
-  );
-
-  await page.goto(URLS.HOMEPAGE);
-  const suggestedCourses = await page.$$eval('#courses_menu a', elements =>
-    elements.slice(1, -1).map(a => `${a.innerText} ${a.title}`)
-  );
-
-  // Courses are often duplicated (say CSEN 102 under both MET, and DMET)
-  // therefore duplicates are eliminated
-  const availableCourses = uniqueBy([...undergraduateCourses, ...postgraduateCourses], 'name');
-
-  // Sort the courses according to the user's set of chosen courses
-  // available under 'my courses' on the website
-  return availableCourses.sort((a, b) => {
-    let indexA = suggestedCourses.indexOf(a.name);
-    let indexB = suggestedCourses.indexOf(b.name);
-    indexA = indexA === -1 ? 99 : indexA;
-    indexB = indexB === -1 ? 99 : indexB;
-
-    return indexA < indexB ? -1 : 1;
-  });
-};
-
-const runApplication = async () => {
-  const { email, password } = await input.getCredentials();
-
-  const browser = await puppeteer.launch({ headless: isHeadless });
-  const context = await browser.createIncognitoBrowserContext();
-  const page = await context.newPage();
-
-  const spinner = ora('Verifying credentials').start();
-  if (!(await login(page, email, password))) {
-    spinner.stop();
-    console.log('You have entered invalid credentials, please try again.');
-    await browser.close();
-    return;
-  }
-
-  spinner.text = 'Fetching available courses';
-  const coursesList = await fetchAllCourses(page);
-  spinner.stop();
-  const selectedCourse = await input.getCourse(coursesList);
-  spinner.start('Opening the course page');
-  await page.goto(constructMaterialLink(selectedCourse.url));
-
-  spinner.stop();
-  const rootDownloadPath = await input.getDownloadRootPath();
-  const courseDirectoryPath = await input.getCourseDirectory(selectedCourse.name, rootDownloadPath);
-  fs.mkdirSync(courseDirectoryPath);
-
-  const orderByFileType = await input.getShouldOrderByFileType();
-  spinner.start();
-  await downloadMaterial(page, courseDirectoryPath, spinner, orderByFileType);
-  spinner.stop();
-  console.log('Download finished successfully!');
-  await browser.close();
-};
-
-const main = async () => {
-  await runApplication();
-
+const exitApplication = () => {
   let signOff = '\n';
   signOff += chalk.blue('Thank you for using ') + chalk.blue.bold('met-downloader') + '.\n';
   signOff += `${chalk.blue('If you enjoy it, feel free to leave a')} ${chalk.red.bold('star')}\n`;
@@ -183,6 +36,29 @@ const main = async () => {
       align: 'center'
     })
   );
+  process.exit(0);
+};
+
+if (process.platform === 'win32') {
+  // To be able to capture SIGINT in windows systems :)
+  const rl = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  rl.on('SIGINT', () => {
+    process.emit('SIGINT');
+  });
+}
+
+const main = async () => {
+  const signalRef = new SignalRef('SIGINT', exitApplication);
+
+  try {
+    await runApplication();
+  } finally {
+    signalRef.unref();
+  }
 };
 
 main();
