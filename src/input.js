@@ -52,14 +52,16 @@ module.exports.getDownloadRootPath = async () => {
   return downloadRootPath;
 };
 
+const validateDirectory = path =>
+  /^\w+[\w\-\s:()\][]*$/.test(path) ||
+  'Directory name can only contain letters, numbers, dashes, underscores, colons, brackets, and whitespaces.';
+
 module.exports.getCourseDirectory = async (defaultDirectory, rootPath) => {
   let { courseDirectory } = await inquirer.prompt([
     {
       name: 'courseDirectory',
       message: `Enter a directory name to be created for the course's material:`,
-      validate: path =>
-        /^\w+[\w\-\s:]*$/.test(path) ||
-        'Directory name can only contain letters, numbers, dashes, underscores, colons, and whitespaces.',
+      validate: validateDirectory,
       default: defaultDirectory
     }
   ]);
@@ -69,9 +71,7 @@ module.exports.getCourseDirectory = async (defaultDirectory, rootPath) => {
       {
         name: 'courseDirectory',
         message: `"${courseDirectory}" already exists. Provide another name please`,
-        validate: path =>
-          /^\w+[\w\-\s:]*$/.test(path) ||
-          'Directory name can only contain letters, numbers, dashes, underscores, colons, and whitespaces.'
+        validate: validateDirectory
       }
     ])); // Since re-assigning with destructuring, it has to be wrapped in parens.
     downloadRootPath = path.resolve(rootPath, courseDirectory);
