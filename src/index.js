@@ -8,6 +8,7 @@ const chalk = require('chalk');
 
 const { URLS } = require('./constants');
 const input = require('./input');
+const { isHeadless } = require('./config');
 const { isDoneDownloading, constructMaterialLink, uniqueBy } = require('./utils');
 
 /**
@@ -110,7 +111,6 @@ const fetchAllCourses = async page => {
 
 const runApplication = async () => {
   const { email, password } = await input.getCredentials();
-  const { isHeadless } = await input.getBrowserOptions();
 
   const browser = await puppeteer.launch({ headless: isHeadless });
   const context = await browser.createIncognitoBrowserContext();

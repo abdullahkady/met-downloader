@@ -62,16 +62,6 @@ module.exports.getDownloadDirectory = async defaultDirectory => {
   return downloadRootPath;
 };
 
-module.exports.getBrowserOptions = () =>
-  inquirer.prompt([
-    {
-      name: 'isHeadless',
-      type: 'confirm',
-      message: `Launch a headless browser (type 'n' if you want to see the browser automation in action).`,
-      default: true
-    }
-  ]);
-
 const coursesFuzzySearch = courses => async (answers, input) => {
   if (input === undefined) {
     return courses;
