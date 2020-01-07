@@ -1,5 +1,9 @@
 A puppeteer (headless browser) script that downloads the material of any course hosted on the MET (GUC) website, and organizes the materials into their respective folders accordingly.
 
+## Showcase
+
+[![asciicast](https://asciinema.org/a/2ojibKGuBzk5IuUzgXMG2q33g.svg)](https://asciinema.org/a/2ojibKGuBzk5IuUzgXMG2q33g?speed=2)
+
 ## Usage
 
 ### npx (Recommended)
