@@ -154,12 +154,13 @@ const runApplication = async () => {
   await page.goto(constructMaterialLink(selectedCourse.url));
 
   spinner.stop();
-  const downloadRootPath = await input.getDownloadDirectory(selectedCourse.name);
-  fs.mkdirSync(downloadRootPath);
+  const rootDownloadPath = await input.getDownloadRootPath();
+  const courseDirectoryPath = await input.getCourseDirectory(selectedCourse.name, rootDownloadPath);
+  fs.mkdirSync(courseDirectoryPath);
 
   const orderByFileType = await input.getShouldOrderByFileType();
   spinner.start();
-  await downloadMaterial(page, downloadRootPath, spinner, orderByFileType);
+  await downloadMaterial(page, courseDirectoryPath, spinner, orderByFileType);
   spinner.stop();
   console.log('Download finished successfully!');
   await browser.close();

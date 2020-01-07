@@ -4,7 +4,7 @@ const fuzzy = require('fuzzy');
 const inquirer = require('inquirer');
 inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
 
-const { DOWNLOAD_OUTPUT_PATH } = require('./config');
+const { systemDownloadDirectory } = require('./config');
 
 const isValidGucEmail = string => {
   return /^[a-zA-Z0-9_\-.]+@student\.guc\.edu\.eg$/.test(string);
@@ -35,29 +35,46 @@ module.exports.getCredentials = () =>
     }
   ]);
 
-module.exports.getDownloadDirectory = async defaultDirectory => {
-  let { downloadDirectoryName } = await inquirer.prompt([
+module.exports.getDownloadRootPath = async () => {
+  const { downloadRootPath } = await inquirer.prompt([
     {
-      name: 'downloadDirectoryName',
+      name: 'downloadRootPath',
+      message:
+        'Enter a path to the root directory for your downloads (note, this is not ' +
+        'the final directory, the program will create a sub-directory for the course):',
+      validate: path => {
+        const isValid = fs.existsSync(path) && fs.lstatSync(path).isDirectory();
+        return isValid || `Directory invalid, please try again.`;
+      },
+      default: systemDownloadDirectory
+    }
+  ]);
+  return downloadRootPath;
+};
+
+module.exports.getCourseDirectory = async (defaultDirectory, rootPath) => {
+  let { courseDirectory } = await inquirer.prompt([
+    {
+      name: 'courseDirectory',
       message: `Enter a directory name to be created for the course's material:`,
-      validate: input =>
-        /^\w+[\w\-\s:]*$/.test(input) ||
+      validate: path =>
+        /^\w+[\w\-\s:]*$/.test(path) ||
         'Directory name can only contain letters, numbers, dashes, underscores, colons, and whitespaces.',
       default: defaultDirectory
     }
   ]);
-  let downloadRootPath = path.resolve(DOWNLOAD_OUTPUT_PATH, downloadDirectoryName);
+  let downloadRootPath = path.resolve(rootPath, courseDirectory);
   while (fs.existsSync(downloadRootPath)) {
-    ({ downloadDirectoryName } = await inquirer.prompt([
+    ({ courseDirectory } = await inquirer.prompt([
       {
-        name: 'downloadDirectoryName',
-        message: `"${downloadDirectoryName}" already exists. Provide another name please`,
-        validate: input =>
-          /^\w+[\w\-\s:]*$/.test(input) ||
+        name: 'courseDirectory',
+        message: `"${courseDirectory}" already exists. Provide another name please`,
+        validate: path =>
+          /^\w+[\w\-\s:]*$/.test(path) ||
           'Directory name can only contain letters, numbers, dashes, underscores, colons, and whitespaces.'
       }
     ])); // Since re-assigning with destructuring, it has to be wrapped in parens.
-    downloadRootPath = path.resolve(DOWNLOAD_OUTPUT_PATH, downloadDirectoryName);
+    downloadRootPath = path.resolve(rootPath, courseDirectory);
   }
   return downloadRootPath;
 };
