@@ -6,7 +6,7 @@ const ora = require('ora');
 
 const { URLS } = require('./constants');
 const input = require('./input');
-const { isHeadless } = require('./config');
+const { isHeadless, chromiumPath } = require('./config');
 const { isDoneDownloading, constructMaterialLink, uniqueBy } = require('./utils');
 
 /**
@@ -130,7 +130,8 @@ const fetchAllCourses = async page => {
 module.exports.runApplication = async () => {
   const { email, password } = await input.getCredentials();
 
-  const browser = await puppeteer.launch({ headless: isHeadless });
+  // 'chromiumPath' can be provided via environment to avoid downloading chromium.
+  const browser = await puppeteer.launch({ headless: isHeadless, executablePath: chromiumPath });
   const context = await browser.createIncognitoBrowserContext();
   const page = await context.newPage();
 
@@ -146,6 +147,8 @@ module.exports.runApplication = async () => {
 
   spinner.start('Fetching available courses');
   const coursesList = await fetchAllCourses(page);
+  // Application is only terminated via SIGINT
+  // eslint-disable-next-line
   while (true) {
     spinner.stop();
     const selectedCourse = await input.getCourse(coursesList);
