@@ -3,11 +3,25 @@
   "version": "1.0.0",
   "description": "Downloads the material of a course hosted on the MET (GUC) website, and organizes the materials into their respective folders accordingly",
   "main": "src/index.js",
+  "bin": "src/index.js",
   "homepage": "https://github.com/AbdullahKady/met-downloader",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AbdullahKady/met-downloader.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AbdullahKady/met-downloader/issues"
+  },
   "scripts": {
     "start": "node src/index.js"
   },
-  "keywords": [],
+  "keywords": [
+    "guc",
+    "met",
+    "automation",
+    "downloader",
+    "headless"
+  ],
   "author": "Abdullah Elkady <abdullahkady@gmail.com>",
   "license": "MIT",
   "dependencies": {

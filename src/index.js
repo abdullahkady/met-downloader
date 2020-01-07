@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /** @typedef {import('puppeteer').Page} Page */
 const puppeteer = require('puppeteer');
 const fs = require('fs');
