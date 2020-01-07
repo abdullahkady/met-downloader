@@ -28,21 +28,20 @@ module.exports.isDoneDownloading = (filePath, timeout) =>
     });
   });
 
-module.exports.isValidGucEmail = string => {
-  return /^[a-zA-Z0-9_\-\.]+@student\.guc\.edu\.eg$/.test(string);
-};
-
-module.exports.isValidMetCourseUrl = string => {
-  const matchingQueryParam = string.match(/crsEdId=\d+/);
-  return (
-    /^http:\/\/met\.guc\.edu\.eg\/Courses/.test(string) &&
-    matchingQueryParam &&
-    matchingQueryParam.length === 1
-  );
-};
-
 module.exports.constructMaterialLink = inputURL => {
   // Note that the input URL can be any valid course URL (not necessarily the materials tab).
   const courseIDQueryParam = inputURL.match(/crsEdId=\d+/).pop(); // crsEdId=912
   return `http://met.guc.edu.eg/Courses/Material.aspx?${courseIDQueryParam}`;
+};
+
+module.exports.uniqueBy = (list, key) => {
+  const seen = {};
+  return list.filter(item => {
+    const value = item[key];
+    if (seen[value]) {
+      return false;
+    }
+    seen[value] = true;
+    return true;
+  });
 };

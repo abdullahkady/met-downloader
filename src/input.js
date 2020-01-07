@@ -1,9 +1,14 @@
 const fs = require('fs');
 const path = require('path');
+const fuzzy = require('fuzzy');
 const inquirer = require('inquirer');
+inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
 
 const { DOWNLOAD_OUTPUT_PATH } = require('./config');
-const { isValidGucEmail, isValidMetCourseUrl } = require('./utils');
+
+const isValidGucEmail = string => {
+  return /^[a-zA-Z0-9_\-.]+@student\.guc\.edu\.eg$/.test(string);
+};
 
 module.exports.getCredentials = () =>
   inquirer.prompt([
@@ -30,25 +35,6 @@ module.exports.getCredentials = () =>
     }
   ]);
 
-module.exports.getCourseURL = () =>
-  inquirer.prompt([
-    {
-      type: 'input',
-      name: 'courseURL',
-      message: 'Enter course URL:',
-      validate: courseURL => {
-        if (isValidMetCourseUrl(courseURL)) {
-          return true;
-        }
-
-        return (
-          'Please enter a valid course URL' +
-          ' (eg. http://met.guc.edu.eg/Courses/Material.aspx?crsEdId=954)'
-        );
-      }
-    }
-  ]);
-
 module.exports.getDownloadDirectory = async defaultDirectory => {
   let { downloadDirectoryName } = await inquirer.prompt([
     {
@@ -60,7 +46,7 @@ module.exports.getDownloadDirectory = async defaultDirectory => {
       default: defaultDirectory
     }
   ]);
-  let downloadRootPath = path.resolve(DOWNLOAD_OUTPUT_PATH, 'downloads', downloadDirectoryName);
+  let downloadRootPath = path.resolve(DOWNLOAD_OUTPUT_PATH, downloadDirectoryName);
   while (fs.existsSync(downloadRootPath)) {
     ({ downloadDirectoryName } = await inquirer.prompt([
       {
@@ -71,7 +57,7 @@ module.exports.getDownloadDirectory = async defaultDirectory => {
           'Directory name can only contain letters, numbers, dashes, underscores, colons, and whitespaces.'
       }
     ])); // Since re-assigning with destructuring, it has to be wrapped in parens.
-    downloadRootPath = path.resolve(DOWNLOAD_OUTPUT_PATH, 'downloads', downloadDirectoryName);
+    downloadRootPath = path.resolve(DOWNLOAD_OUTPUT_PATH, downloadDirectoryName);
   }
   return downloadRootPath;
 };
@@ -85,3 +71,25 @@ module.exports.getBrowserOptions = () =>
       default: true
     }
   ]);
+
+const coursesFuzzySearch = courses => async (answers, input) => {
+  if (input === undefined) {
+    return courses;
+  }
+
+  const results = fuzzy.filter(input, courses);
+  return results.map(c => c.original);
+};
+
+module.exports.getCourse = coursesList =>
+  inquirer
+    .prompt([
+      {
+        type: 'autocomplete',
+        pageSize: 5,
+        name: 'course',
+        message: 'Select the course to be downloaded. Start typing to search: ',
+        source: coursesFuzzySearch(coursesList.map(c => c.name))
+      }
+    ])
+    .then(res => coursesList.find(c => c.name === res.course));
