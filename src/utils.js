@@ -34,6 +34,12 @@ module.exports.constructMaterialLink = inputURL => {
   return `http://met.guc.edu.eg/Courses/Material.aspx?${courseIDQueryParam}`;
 };
 
+/**
+ * @param {Array} list
+ * @param {String} key
+ * Takes a list of objects "list", and returns a list
+ * containing the unique elements according to some key "key".
+ * */
 module.exports.uniqueBy = (list, key) => {
   const seen = {};
   return list.filter(item => {

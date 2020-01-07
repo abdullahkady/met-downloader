@@ -16,25 +16,45 @@ const { isDoneDownloading, constructMaterialLink, uniqueBy } = require('./utils'
  * Expects that the page paramter is already navigated to the right
  * URL (course materials page)
  * */
-const downloadMaterial = async (page, downloadDirectoryPath, spinner) => {
-  const materialsSections = await page.$$eval('.badgeContainer', containers =>
-    containers
-      .map(container => {
-        const directory = container.querySelector('.badgeDetails > h3').innerText;
-        const files = Array.from(container.querySelectorAll('a')).map(node => ({
-          fileName: node
-            .getAttribute('href')
-            .split('file=')
-            .pop(),
-          id: node.id
-        }));
+const downloadMaterial = async (page, downloadDirectoryPath, spinner, orderByFileType) => {
+  if (orderByFileType) {
+    await Promise.all([
+      page.click('#ctl00_AcademicsMasterContent_fileTypeLinkBtn'),
+      page.waitForNavigation({ waitUntil: 'load' })
+    ]);
+  }
 
-        return {
-          directory,
-          files
-        };
-      })
-      .filter(({ files }) => files.length > 0)
+  const materialsSections = await page.$$eval(
+    '.badgeContainer',
+    containers =>
+      containers
+        .map(container => {
+          // The element containing the course name differs based on the view (by type vs by week)
+          // and since the boolean "orderByFileType" won't be available in the page context, this
+          // hack is the easiest way to get a compatible solution for both cases.
+          let directory = container.querySelector('.badgeDetails > h3');
+          if (directory) {
+            directory = directory.innerText;
+          } else {
+            directory = container.querySelector('.badgeHeader h3').innerText;
+          }
+
+          const files = [...container.querySelectorAll('a')]
+            .filter(a => a.href && a.innerText) // They contain extra empty anchor tags \_0_/
+            .map(node => ({
+              fileName: node
+                .getAttribute('href')
+                .split('file=')
+                .pop(),
+              id: node.id
+            }));
+
+          return {
+            directory,
+            files
+          };
+        })
+        .filter(({ files }) => files.length > 0) // Ignore empty weeks (exams week for instance)
   );
 
   for (const [i, { directory, files }] of materialsSections.entries()) {
@@ -129,24 +149,15 @@ const runApplication = async () => {
   spinner.stop();
   const selectedCourse = await input.getCourse(coursesList);
   spinner.start('Opening the course page');
-  const response = await page.goto(constructMaterialLink(selectedCourse.url));
+  await page.goto(constructMaterialLink(selectedCourse.url));
 
-  if (response.request().redirectChain().length !== 0) {
-    // If the request got redirected, then the course ID was invalid, and the
-    // request was thus redirected back to the main page.
-    spinner.stop();
-    console.log('You have entered an invalid course. Please make sure the course exists.');
-    await browser.close();
-    return;
-  }
-
-  const defaultDirectory = selectedCourse.name;
   spinner.stop();
-  const downloadRootPath = await input.getDownloadDirectory(defaultDirectory);
+  const downloadRootPath = await input.getDownloadDirectory(selectedCourse.name);
   fs.mkdirSync(downloadRootPath);
 
-  spinner.start('downloading');
-  await downloadMaterial(page, downloadRootPath, spinner);
+  const orderByFileType = await input.getShouldOrderByFileType();
+  spinner.start();
+  await downloadMaterial(page, downloadRootPath, spinner, orderByFileType);
   spinner.stop();
   console.log('Download finished successfully!');
   await browser.close();
@@ -155,12 +166,13 @@ const runApplication = async () => {
 const main = async () => {
   await runApplication();
 
-  let exitMessage = '\n';
-  exitMessage += chalk.blue('Thank you for using ') + chalk.blue.bold('met-downloader');
-  exitMessage += chalk.blue('. For feedback please head to: \n');
-  exitMessage += chalk.yellow.bold.italic('https://github.com/AbdullahKady/met-downloader\n');
+  let signOff = '\n';
+  signOff += chalk.blue('Thank you for using ') + chalk.blue.bold('met-downloader') + '.\n';
+  signOff += `${chalk.blue('If you enjoy it, feel free to leave a')} ${chalk.red.bold('star')}\n`;
+  signOff += chalk.yellow.bold.italic('https://github.com/AbdullahKady/met-downloader\n\n');
+  signOff += chalk.gray.italic('Feedback and contribution is welcome as well :)');
   console.log(
-    boxen(exitMessage, {
+    boxen(signOff, {
       padding: 1,
       margin: 1,
       borderStyle: 'double',

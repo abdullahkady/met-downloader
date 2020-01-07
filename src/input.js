@@ -83,3 +83,18 @@ module.exports.getCourse = coursesList =>
       }
     ])
     .then(res => coursesList.find(c => c.name === res.course));
+
+module.exports.getShouldOrderByFileType = () =>
+  inquirer
+    .prompt([
+      {
+        type: 'list',
+        choices: [
+          { name: 'By Week', value: false },
+          { name: 'By File Type (Lectures, Assignments, etc.)', value: true }
+        ],
+        name: 'orderByFileType',
+        message: 'How would you like to organize the files downloaded'
+      }
+    ])
+    .then(res => res.orderByFileType);
