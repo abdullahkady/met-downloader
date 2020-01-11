@@ -7,8 +7,7 @@ A puppeteer (headless browser) script that downloads the material of any course 
 ## Usage
 
 ### npx (Recommended)
-
-Use `npx`, this avoids installing the tool on your system. However chromium binaries will be downloaded every time you run the application, so you can use the below setup to avoid doing so.
+If you have `npx` installed, you can avoid installing the tool on your system. However chromium binaries will be downloaded every time you run the application, so you can use the below setup to avoid doing so.
 
 ```bash
 export CHROMIUM_EXEC_PATH=/usr/bin/google-chrome
@@ -16,16 +15,15 @@ export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 npx met-downloader
 ```
 
-When `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` is set to `true`, puppeteer skips downloading the binaries for chromium, however it must be provided with an executable path to a chromium binary (which is done via the `CHROMIUM_EXEC_PATH` environment variable). In the above example, it's assumed the default path to google-chrome, on an Ubuntu machine.
+When `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` is set to `true`, puppeteer skips downloading the binaries for chromium, however you **must** provide an executable path to a chromium binary (which is done via the `CHROMIUM_EXEC_PATH` environment variable). In the above example, it's assumed the default path to google-chrome, on an Ubuntu machine.
 
 ### Installing globally
-
-If you would like, you can install the extension globally by running
+If you don't have `npx` installed, or you would like to install the CLI tool so that you can use it anytime you can install it globally by running
 
 ```bash
 npm i met-downloader -g
 ```
-
+Note that this will fetch the chromium binaries, you can skip them as described above, but you will have to provide the executable chromium path as an environment every time you run the command (you can obviously configure this through your bash to avoid exporting the same environment repeatedly)
 Once the installation is done, simply run
 
 ```bash
