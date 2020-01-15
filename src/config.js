@@ -4,4 +4,4 @@ if (process.env.IS_HEADLESS !== undefined && process.env.IS_HEADLESS === 'false'
 }
 module.exports.systemDownloadDirectory = require('downloads-folder')();
 module.exports.isHeadless = isHeadless;
-module.exports.chromiumPath = process.env.CHROMIUM_EXEC_PATH;
+module.exports.chromiumPath = process.env.CHROMIUM_EXECUTABLE_PATH;

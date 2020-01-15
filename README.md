@@ -11,12 +11,12 @@ A puppeteer (headless browser) script that downloads the material of any course 
 Use `npx`, this avoids installing the tool on your system. However chromium binaries will be downloaded every time you run the application, so you can use the below setup to avoid doing so.
 
 ```bash
-export CHROMIUM_EXEC_PATH=/usr/bin/google-chrome
+export CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 npx met-downloader
 ```
 
-When `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` is set to `true`, puppeteer skips downloading the binaries for chromium, however it must be provided with an executable path to a chromium binary (which is done via the `CHROMIUM_EXEC_PATH` environment variable). In the above example, it's assumed the default path to google-chrome, on an Ubuntu machine.
+When `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` is set to `true`, puppeteer skips downloading the binaries for chromium, however it must be provided with an executable path to a chromium binary (which is done via the `CHROMIUM_EXECUTABLE_PATH` environment variable). In the above example, it's assumed the default path to google-chrome, on an Ubuntu machine.
 
 ### Installing globally
 
