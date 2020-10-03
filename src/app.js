@@ -3,6 +3,7 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
 const ora = require('ora');
+const sanitizeFilename = require('sanitize-filename');
 
 const { URLS } = require('./constants');
 const input = require('./input');
@@ -56,7 +57,10 @@ const downloadMaterial = async (page, downloadDirectoryPath, spinner, orderByFil
   );
 
   for (const [i, { directory, files }] of materialsSections.entries()) {
-    const sectionDirectory = path.resolve(downloadDirectoryPath, `${i + 1}-${directory}`);
+    const sectionDirectory = path.resolve(
+      downloadDirectoryPath,
+      `${i + 1}-${sanitizeFilename(directory, { replacement: '-' })}`
+    );
     fs.mkdirSync(sectionDirectory);
     await page._client.send('Page.setDownloadBehavior', {
       behavior: 'allow',
